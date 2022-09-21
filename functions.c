@@ -502,13 +502,13 @@ int recv_packet(int pkt_type)
 						(struct sockaddr *)&ll,
                                                 (socklen_t *) &sock_len);
 				fprintf(stdout, ">>> ret = %d \n", ret);
-			}
-			if(ret >= 60) {
+
 				fprintf(stdout, ">>> %dB:", ret);
 				for (int i = 0; i < ret; i++)
 					fprintf(stdout, " %X", dhcp_packet_ack[i]);
 				fprintf(stdout, "\n");
-
+			}
+			if(ret >= 60) {
 				chk_pkt_state = check_packet(DHCP_MSGACK);
 				if(chk_pkt_state == DHCP_ACK_RCVD) {
 					fprintf(stdout, ">>> DHCP_ACK_RCVD \n");
