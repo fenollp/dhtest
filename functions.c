@@ -245,7 +245,7 @@ int send_packet(int pkt_type)
 				0,\
 				(struct sockaddr *) &ll,\
 				sizeof(ll));
-	} else if(pkt_type == DHCP_MSGREQUEST) {
+	} else if(pkt_type == DHCP_MSGREQUEST) { // requests here
 		ret = sendto(sock_packet,\
 				dhcp_packet_request,\
 				(l2_hdr_size + l3_hdr_size + l4_hdr_size + dhcp_hdr_size + dhopt_size),\
@@ -327,7 +327,7 @@ int send_packet(int pkt_type)
 					dhmac[0], dhmac[1], dhmac[2], dhmac[3], dhmac[4], dhmac[5],
 					dhmac[0], dhmac[1], dhmac[2], dhmac[3], dhmac[4], dhmac[5]);
 			}
-		} else if (pkt_type == DHCP_MSGREQUEST) {
+		} else if (pkt_type == DHCP_MSGREQUEST) { // prints here then pauses
 			if (!nagios_flag && !json_flag) {
 				fprintf(stdout, "DHCP request sent\t - ");
 				fprintf(stdout, "Client MAC : %02x:%02x:%02x:%02x:%02x:%02x\n", \
@@ -436,11 +436,12 @@ int recv_packet(int pkt_type)
 			}
 		}
 		return DHCP_DISC_RESEND;
-	} else if(pkt_type == DHCP_MSGACK) {
+	} else if(pkt_type == DHCP_MSGACK) { // stalls
 		while(tval.tv_sec != 0) {
 			FD_ZERO(&read_fd);
 			FD_SET(sock_packet, &read_fd);
 			retval = select(sock_packet + 1, &read_fd, NULL, NULL, &tval);
+			fprintf(stdout, ">>> retval = %d FD_ISSET(sock_packet,&read_fd) = %d \n", retval, FD_ISSET(sock_packet,&read_fd));
 			if(retval == 0) {
 				return DHCP_REQ_RESEND;
 				break;
@@ -453,6 +454,7 @@ int recv_packet(int pkt_type)
 						0,\
 						(struct sockaddr *)&ll,
                                                 (socklen_t *) &sock_len);
+				fprintf(stdout, ">>> ret = %d \n", ret);
 			}
 			if(ret >= 60) {
 				chk_pkt_state = check_packet(DHCP_MSGACK);

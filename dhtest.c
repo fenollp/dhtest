@@ -820,7 +820,7 @@ int main(int argc, char *argv[])
                                                 "\"error-msg\":\"Timeout reached: REQUEST.\"}"
                                                 "]");
 				} else {
-					fprintf(stdout, "Timeout reached. Exiting\n");
+					fprintf(stdout, "Timeout reached. Exiting\n"); // stalls then exists here
 				}
 				close_socket();
 				exit(1);
