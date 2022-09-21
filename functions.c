@@ -440,14 +440,61 @@ int recv_packet(int pkt_type)
 		while(tval.tv_sec != 0) {
 			FD_ZERO(&read_fd);
 			FD_SET(sock_packet, &read_fd);
+
+		// https://man7.org/linux/man-pages/man2/select.2.html
+       // WARNING: select() can monitor only file descriptors numbers that
+       // are less than FD_SETSIZE (1024)—an unreasonably low limit for
+       // many modern applications—and this limitation will not change.
+       // All modern applications should instead use poll(2) or epoll(7),
+       // which do not suffer this limitation.
+
 			retval = select(sock_packet + 1, &read_fd, NULL, NULL, &tval);
+// DHCP request sent	 - Client MAC : 02:02:44:00:00:07
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 198 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 198 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// DHCP request sent	 - Client MAC : 02:02:44:00:00:07
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 1 FD_ISSET(sock_packet,&read_fd) = 1 
+// >>> ret = 42 
+// >>> retval = 0 FD_ISSET(sock_packet,&read_fd) = 0 
+// DHCP request sent	 - Client MAC : 02:02:44:00:00:07
+// >>> retval = 0 FD_ISSET(sock_packet,&read_fd) = 0 
+// Timeout reached. Exiting
 			fprintf(stdout, ">>> retval = %d FD_ISSET(sock_packet,&read_fd) = %d \n", retval, FD_ISSET(sock_packet,&read_fd));
+
 			if(retval == 0) {
 				return DHCP_REQ_RESEND;
 				break;
 			} else if ( retval > 0 && FD_ISSET(sock_packet, &read_fd)){
 				bzero(dhcp_packet_ack, sizeof(dhcp_packet_ack));
 				sock_len = sizeof(ll);
+
+		// https://man7.org/linux/man-pages/man2/recvfrom.2.html
+
+
 				ret = recvfrom(sock_packet,\
 						dhcp_packet_ack,\
 						sizeof(dhcp_packet_ack),\
@@ -457,14 +504,24 @@ int recv_packet(int pkt_type)
 				fprintf(stdout, ">>> ret = %d \n", ret);
 			}
 			if(ret >= 60) {
+				fprintf(stdout, ">>> %dB:", ret);
+				for (int i = 0; i < ret; i++)
+					fprintf(stdout, " %X", dhcp_packet_ack[i]);
+				fprintf(stdout, "\n");
+
 				chk_pkt_state = check_packet(DHCP_MSGACK);
 				if(chk_pkt_state == DHCP_ACK_RCVD) {
+					fprintf(stdout, ">>> DHCP_ACK_RCVD \n");
 					return DHCP_ACK_RCVD;
 				} else if(chk_pkt_state == DHCP_NAK_RCVD) {
+					fprintf(stdout, ">>> DHCP_NAK_RCVD \n");
 					return DHCP_NAK_RCVD;
+				} else if (chk_pkt_state == UNKNOWN_PACKET) {
+					fprintf(stdout, ">>> UNKNOWN_PACKET \n");
 				}
 			}
 		}
+		fprintf(stdout, ">>> DHCP_REQ_RESEND \n");
 		return DHCP_REQ_RESEND;
 	} else if(pkt_type == ARP_ICMP_RCV) {
 		while(tval_listen.tv_sec != 0) {
@@ -1213,7 +1270,7 @@ int check_packet(int pkt_type)
 		} else {
 			return UNKNOWN_PACKET;
 		}
-	} else if (pkt_type == DHCP_MSGACK && vlan != 0){
+	} else if (pkt_type == DHCP_MSGACK && vlan != 0){ // here
 		map_all_layer_ptr(DHCP_MSGACK);
 		if((ntohs(vlan_hg->vlan_priority_c_vid) & VLAN_VIDMASK)== vlan && ntohs(vlan_hg->vlan_tpi) == ETHERTYPE_VLAN && iph_g->protocol == 17 && uh_g->source == htons(port) && (uh_g->dest == htons(port + 1) || uh_g->dest == htons(port))) {
 			dhopt_pointer_tmp = dhopt_pointer_g;
@@ -1261,7 +1318,7 @@ int check_packet(int pkt_type)
 			return UNKNOWN_PACKET;
 		}
 
-	} else if (pkt_type == DHCP_MSGACK) {
+	} else if (pkt_type == DHCP_MSGACK) { // here
 		map_all_layer_ptr(DHCP_MSGACK);
 		if(eth_hg->ether_type == htons(ETHERTYPE_IP) && iph_g->protocol == 17 && uh_g->source == htons(port) && (uh_g->dest == htons(port + 1) || uh_g->dest == htons(port))) {
 			dhopt_pointer_tmp = dhopt_pointer_g;
